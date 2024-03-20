@@ -4,15 +4,16 @@ package models
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type Transaction struct {
-	gorm.Model      `json:"_"`
-	TransactionID   int       `gorm:"primaryKey" json:"transaction_id"`
-	TellerID        int       `gorm:"foreignKey:TellerID" json:"teller_id"`
-	AccountID       int       `gorm:"foreignKey:AccountID" json:"account_id"`
-	TransactionType string    `json:"transaction_type"`
-	Amount          float64   `json:"amount"`
-	TransactionDate time.Time `json:"transaction_date"`
+	gorm.Model        `json:"_"`
+	ID                uuid.UUID `json:"id" gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
+	UserID            uuid.UUID `gorm:"foreignKey:UserID" json:"user_id"`
+	AccountID         uuid.UUID `gorm:"foreignKey:AccountID" json:"account_id"`
+	TransactionTypeID uuid.UUID `gorm:"foreignKey:TransactionTypeID" json:"transaction_type_id"`
+	Amount            float64   `json:"amount"`
+	TransactionDate   time.Time `json:"transaction_date"`
 }

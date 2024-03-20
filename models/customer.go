@@ -4,15 +4,14 @@ package models
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type Customer struct {
 	gorm.Model `json:"_"`
-	CustomerID int       `gorm:"primaryKey" json:"customer_id"`
-	FirstName  string    `json:"first_name"`
-	LastName   string    `json:"last_name"`
+	ID         uuid.UUID `json:"id" gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
 	DOB        time.Time `json:"dob"`
 	Address    string    `json:"address"`
-	Phone      string    `json:"phone"`
+	UserID     uuid.UUID `gorm:"foreignKey:UserID" json:"user_id"`
 }

@@ -1,10 +1,13 @@
 // File: teller.go
 package models
 
-import "gorm.io/gorm"
+import (
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 type Teller struct {
 	gorm.Model `json:"_"`
-	TellerID   int    `gorm:"primaryKey" json:"teller_id"`
-	Username   string `json:"username"`
+	ID         uuid.UUID `json:"id" gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
+	UserID     uuid.UUID `gorm:"foreignKey:UserID" json:"user_id"`
 }
