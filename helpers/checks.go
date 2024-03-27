@@ -3,10 +3,13 @@ package helpers
 import (
 	"bank-teller-backend/initializers"
 	"bank-teller-backend/models"
-	"errors"
+	"fmt"
 	"os"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func UserExists(email string, phone string) bool {
@@ -15,57 +18,71 @@ func UserExists(email string, phone string) bool {
 	return result.Error == nil
 }
 
-func GetRoleByName(name string) (models.Role, error) {
-	var role models.Role
-	result := initializers.DB.Where("name = ?", name).First(&role)
-	if result.Error != nil {
-		return models.Role{}, errors.New("role not found")
-	}
-	return role, nil
-}
+func ValidateTokenAndGetRole(tokenString string) (string, error) {
+	// Replace this with your JWT secret key
+	secretKey := os.Getenv("JWT_SECRET")
 
-func GetUserFromToken(token string) (models.User, error) {
-	// Parse the token to get the user ID
-	userID, err := ParseToken(token)
-	if err != nil {
-		return models.User{}, err
-	}
-
-	// Get the user from the database
-	var user models.User
-	result := initializers.DB.Where("id = ?", userID).First(&user)
-	if result.Error != nil {
-		return models.User{}, errors.New("ser not found")
-	}
-
-	return user, nil
-}
-
-func ParseToken(tokenString string) (string, error) {
-	// Replace "yourSigningKey" with your actual signing key
-	key := os.Getenv("JWT_SECRET")
-	signingKey := []byte(key)
-
+	// Parse the token
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		// Check the signing method
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("unexpected signing method")
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return signingKey, nil
+
+		return []byte(secretKey), nil
 	})
 
 	if err != nil {
 		return "", err
 	}
 
+	// Get the claims
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok || !token.Valid {
-		return "", errors.New("Invalid token")
+		return "", fmt.Errorf("invalid token")
 	}
 
-	userID, ok := claims["userID"].(string)
+	// Get the role from the claims
+	role, ok := claims["role"].(string)
 	if !ok {
-		return "", errors.New("Invalid token claims")
+		return "", fmt.Errorf("role not found in token")
 	}
 
-	return userID, nil
+	return role, nil
+}
+
+// parseRequest parses the request body and returns it as a map.
+func ParseRequest(c *gin.Context) (map[string]interface{}, error) {
+	var req map[string]interface{}
+	err := c.ShouldBindJSON(&req)
+	return req, err
+}
+
+// getUser retrieves the user from the database.
+func GetUser(email string) (models.User, error) {
+	var user models.User
+	err := initializers.DB.Where("email = ?", email).First(&user).Error
+	return user, err
+}
+
+// checkPassword compares the provided password with the user's hashed password.
+func CheckPassword(user models.User, password string) error {
+	return bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+}
+
+// getRole retrieves the user's role from the database.
+func GetRole(user models.User) (models.Role, error) {
+	var role models.Role
+	err := initializers.DB.Where("id = ?", user.RoleID).First(&role).Error
+	return role, err
+}
+
+// generateToken generates a JWT token for the user.
+func GenerateToken(user models.User, role models.Role) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": user.ID,
+		"role":    role.Name,
+		"exp":     time.Now().Add(time.Hour * 24).Unix(),
+	})
+	return token.SignedString([]byte(os.Getenv("JWT_SECRET")))
 }
