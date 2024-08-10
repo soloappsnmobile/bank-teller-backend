@@ -21,7 +21,9 @@ func SetupRouter() *gin.Engine {
 
 	// Set up the routes
 	router.POST("/v1/auth/login", auth.Login)
-	router.POST("/v1/admin/create-teller", middlewares.TokenAuthMiddleware(), admin.CreateTeller)
+	router.POST("/v1/admin/create-teller", middlewares.TokenAuthMiddleware("Admin"), admin.CreateTeller)
+	router.POST("/v1/admin/create-customer", middlewares.TokenAuthMiddleware("Admin", "Teller"), admin.CreateCustomer)
+	router.GET("/v1/admin/get-tellers", middlewares.TokenAuthMiddleware("Admin"), admin.GetTellers)
 
 	return router
 

@@ -16,7 +16,7 @@ func Login(c *gin.Context) {
 
 	userResponse := responses.CreateUserResponse(user, role)
 
-	helpers.RespondWithSuccess(c, http.StatusOK, "Login successful", "200", gin.H{
+	helpers.RespondWithSuccess(c, http.StatusOK, "Login successful", "00", gin.H{
 		"user":  userResponse,
 		"token": tokenString,
 	})

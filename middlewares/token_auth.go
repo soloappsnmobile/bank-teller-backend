@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func TokenAuthMiddleware() gin.HandlerFunc {
+func TokenAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 
@@ -30,15 +30,24 @@ func TokenAuthMiddleware() gin.HandlerFunc {
 
 		// Validate the token and get the role
 		role, err := helpers.ValidateTokenAndGetRole(token)
-		if err != nil || role != "Admin" {
+		if err != nil {
 			helpers.RespondWithError(c, http.StatusUnauthorized, err.Error(), "401")
 			c.Abort()
 			return
 		}
 
-		// Save the role in the context
-		c.Set("role", role)
+		// Check if the role is in the list of allowed roles
+		for _, allowedRole := range allowedRoles {
+			if role == allowedRole {
+				// Save the role in the context
+				c.Set("role", role)
+				c.Next()
+				return
+			}
+		}
 
-		c.Next()
+		// If the role is not allowed, return an error
+		helpers.RespondWithError(c, http.StatusUnauthorized, "Unauthorized role", "401")
+		c.Abort()
 	}
 }

@@ -28,27 +28,31 @@ func ValidateTokenAndGetRole(tokenString string) (string, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-
 		return []byte(secretKey), nil
 	})
 
 	if err != nil {
-		return "", err
+		// Token parsing failed
+		return "", fmt.Errorf("%v", err)
+	}
+
+	// Check if the token is valid
+	if !token.Valid {
+		return "", fmt.Errorf("invalid token")
 	}
 
 	// Get the claims
 	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok || !token.Valid {
-		return "", fmt.Errorf("invalid token")
+	if !ok {
+		return "", fmt.Errorf("failed to extract claims from token")
 	}
-
 	// Get the role from the claims
 	role, ok := claims["role"].(string)
 	if !ok {
 		return "", fmt.Errorf("role not found in token")
 	}
 
-	return role, nil
+	return role, err
 }
 
 // parseRequest parses the request body and returns it as a map.
